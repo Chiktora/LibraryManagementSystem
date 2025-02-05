@@ -10,6 +10,7 @@ namespace LibraryManagementSystem.Data
             : base(options)
         {
         }
+
         public DbSet<BookModel> Books { get; set; }
         public DbSet<AuthorModel> Authors { get; set; }
         public DbSet<BookAuthorModel> BookAuthors { get; set; }
@@ -93,7 +94,5 @@ namespace LibraryManagementSystem.Data
 
             // Допълнителни конфигурации може да се добавят тук, ако има нужда от по-специфично поведение.
         }
-
     }
-    
 }
