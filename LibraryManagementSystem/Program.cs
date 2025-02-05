@@ -1,4 +1,4 @@
-using LibraryManagementSystem.Data;  // ?? ?????? ?? LibraryDbContext
+using LibraryManagementSystem.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,36 +10,27 @@ namespace LibraryManagementSystem
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // ?????? ?? connection string ?? ?????????????? (appsettings.json)
-            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
-            // ???????????? ?? LibraryDbContext ? MSSQL Server
-            builder.Services.AddDbContext<LibraryDbContext>(options =>
+            // Add services to the container.
+            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+            builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(connectionString));
+            builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-            // ???????????? ?? ASP.NET Identity ? ?????????? ?? LibraryDbContext
-            builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
-            {
-                // ??? ???? ?? ??????????????? ??????????? ?? Identity (????????, ?????????? ?? ??????)
-                options.Password.RequireDigit = false;
-                options.Password.RequireLowercase = false;
-                options.Password.RequireNonAlphanumeric = false;
-                options.Password.RequireUppercase = false;
-                options.Password.RequiredLength = 6;
-            })
-            .AddEntityFrameworkStores<LibraryDbContext>()
-            .AddDefaultTokenProviders();
-
-            // ???????????? ?? ???????????? ? ??????? (MVC)
+            builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
+                .AddEntityFrameworkStores<ApplicationDbContext>();
             builder.Services.AddControllersWithViews();
 
             var app = builder.Build();
 
-            // ????????????? ?? HTTP request pipeline
-            if (!app.Environment.IsDevelopment())
+            // Configure the HTTP request pipeline.
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseMigrationsEndPoint();
+            }
+            else
             {
                 app.UseExceptionHandler("/Home/Error");
-                // ?? ???????????? HSTS ?????????? ? 30 ???
+                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
 
@@ -48,13 +39,12 @@ namespace LibraryManagementSystem
 
             app.UseRouting();
 
-            // ?????? ?? ???????? UseAuthentication(), ?? ?? ?? ????????? ??????????????, ????? UseAuthorization()
-            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
+            app.MapRazorPages();
 
             app.Run();
         }
