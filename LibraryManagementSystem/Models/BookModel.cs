@@ -15,11 +15,11 @@ namespace LibraryManagementSystem.Models
 
         // Връзка към жанра (Foreign Key)
         public int GenreId { get; set; }
-        public GenreModel Genre { get; set; }
+        public GenreModel? Genre { get; set; }
 
         // Връзка към издателството (Foreign Key)
         public int PublisherId { get; set; }
-        public PublisherModel Publisher { get; set; }
+        public PublisherModel? Publisher { get; set; }
 
         public DateTime? PublishedDate { get; set; }
 

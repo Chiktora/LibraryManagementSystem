@@ -10,12 +10,12 @@ namespace LibraryManagementSystem.Models
 
         [Required]
         public int BookId { get; set; }
-        public BookModel Book { get; set; }
+        public BookModel? Book { get; set; } 
 
         [Required]
-        public string UserId { get; set; }
+        public string? UserId { get; set; }
         // Свързване с ASP.NET Identity – таблицата AspNetUsers
-        public IdentityUser User { get; set; }
+        public IdentityUser? User { get; set; }
 
         [Required]
         public DateTime BorrowDate { get; set; }
@@ -24,6 +24,6 @@ namespace LibraryManagementSystem.Models
 
         [Required]
         [MaxLength(20)]
-        public string Status { get; set; }
+        public string? Status { get; set; }
     }
 }
