@@ -14,6 +14,6 @@ namespace LibraryManagementSystem.Models
         public string LastName { get; set; }
 
         // Навигационно свойство за many-to-many връзката с книгите
-        public ICollection<BookAuthorModel> BookAuthors { get; set; }
+        public ICollection<BookAuthorModel> BookAuthors { get; set; } = new List<BookAuthorModel>();
     }
 }

@@ -11,6 +11,6 @@ namespace LibraryManagementSystem.Models
         public string Name { get; set; }
 
         // Навигационно свойство към книгите
-        public ICollection<BookModel> Books { get; set; }
+        public ICollection<BookModel> Books { get; set; } = new List<BookModel>();
     }
 }
