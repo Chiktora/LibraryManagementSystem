@@ -7,9 +7,11 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using LibraryManagementSystem.Data;
 using LibraryManagementSystem.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace LibraryManagementSystem.Controllers
 {
+    [Authorize(Roles = "Admin")]
     public class GenreModelsController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -22,7 +24,9 @@ namespace LibraryManagementSystem.Controllers
         // GET: GenreModels
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Genres.ToListAsync());
+            return View(await _context.Genres
+                .Include(g => g.Books)
+                .ToListAsync());
         }
 
         // GET: GenreModels/Details/5
@@ -34,6 +38,9 @@ namespace LibraryManagementSystem.Controllers
             }
 
             var genreModel = await _context.Genres
+                .Include(g => g.Books)
+                    .ThenInclude(b => b.BookAuthors)
+                        .ThenInclude(ba => ba.Author)
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (genreModel == null)
             {

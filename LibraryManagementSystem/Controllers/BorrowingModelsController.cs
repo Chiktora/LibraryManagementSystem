@@ -7,23 +7,40 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using LibraryManagementSystem.Data;
 using LibraryManagementSystem.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 
 namespace LibraryManagementSystem.Controllers
 {
+    [Authorize]
     public class BorrowingModelsController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<IdentityUser> _userManager;
 
-        public BorrowingModelsController(ApplicationDbContext context)
+        public BorrowingModelsController(ApplicationDbContext context, UserManager<IdentityUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         // GET: BorrowingModels
         public async Task<IActionResult> Index()
         {
-            var applicationDbContext = _context.Borrowings.Include(b => b.Book).Include(b => b.User);
-            return View(await applicationDbContext.ToListAsync());
+            var user = await _userManager.GetUserAsync(User);
+            var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
+
+            IQueryable<BorrowingModel> borrowings = _context.Borrowings
+                .Include(b => b.Book)
+                .Include(b => b.User);
+
+            if (!isAdmin)
+            {
+                // Regular users can only see their own borrowings
+                borrowings = borrowings.Where(b => b.UserId == user.Id);
+            }
+
+            return View(await borrowings.ToListAsync());
         }
 
         // GET: BorrowingModels/Details/5
@@ -34,13 +51,22 @@ namespace LibraryManagementSystem.Controllers
                 return NotFound();
             }
 
+            var user = await _userManager.GetUserAsync(User);
+            var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
+
             var borrowingModel = await _context.Borrowings
                 .Include(b => b.Book)
                 .Include(b => b.User)
                 .FirstOrDefaultAsync(m => m.Id == id);
+
             if (borrowingModel == null)
             {
                 return NotFound();
+            }
+
+            if (!isAdmin && borrowingModel.UserId != user.Id)
+            {
+                return Forbid();
             }
 
             return View(borrowingModel);
@@ -50,29 +76,38 @@ namespace LibraryManagementSystem.Controllers
         public IActionResult Create()
         {
             ViewData["BookId"] = new SelectList(_context.Books, "Id", "Title");
-            ViewData["UserId"] = new SelectList(_context.Users, "Id", "Id");
             return View();
         }
 
         // POST: BorrowingModels/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,BookId,UserId,BorrowDate,ReturnDate,Status")] BorrowingModel borrowingModel)
+        public async Task<IActionResult> Create([Bind("BookId")] BorrowingModel borrowingModel)
         {
+            // Set required properties before ModelState validation
+            var user = await _userManager.GetUserAsync(User);
+            borrowingModel.UserId = user.Id;
+            borrowingModel.Status = "Pending";
+            borrowingModel.BorrowDate = DateTime.Now;
+
+            // Clear any existing ModelState errors for these properties
+            ModelState.Remove("UserId");
+            ModelState.Remove("Status");
+            ModelState.Remove("BorrowDate");
+
             if (ModelState.IsValid)
             {
                 _context.Add(borrowingModel);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
+            
             ViewData["BookId"] = new SelectList(_context.Books, "Id", "Title", borrowingModel.BookId);
-            ViewData["UserId"] = new SelectList(_context.Users, "Id", "Id", borrowingModel.UserId);
             return View(borrowingModel);
         }
 
         // GET: BorrowingModels/Edit/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -86,15 +121,14 @@ namespace LibraryManagementSystem.Controllers
                 return NotFound();
             }
             ViewData["BookId"] = new SelectList(_context.Books, "Id", "Title", borrowingModel.BookId);
-            ViewData["UserId"] = new SelectList(_context.Users, "Id", "Id", borrowingModel.UserId);
+            ViewData["UserId"] = new SelectList(_context.Users.OrderBy(u => u.Email), "Id", "Email", borrowingModel.UserId);
             return View(borrowingModel);
         }
 
         // POST: BorrowingModels/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int id, [Bind("Id,BookId,UserId,BorrowDate,ReturnDate,Status")] BorrowingModel borrowingModel)
         {
             if (id != borrowingModel.Id)
@@ -123,11 +157,12 @@ namespace LibraryManagementSystem.Controllers
                 return RedirectToAction(nameof(Index));
             }
             ViewData["BookId"] = new SelectList(_context.Books, "Id", "Title", borrowingModel.BookId);
-            ViewData["UserId"] = new SelectList(_context.Users, "Id", "Id", borrowingModel.UserId);
+            ViewData["UserId"] = new SelectList(_context.Users.OrderBy(u => u.Email), "Id", "Email", borrowingModel.UserId);
             return View(borrowingModel);
         }
 
         // GET: BorrowingModels/Delete/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -150,6 +185,7 @@ namespace LibraryManagementSystem.Controllers
         // POST: BorrowingModels/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var borrowingModel = await _context.Borrowings.FindAsync(id);

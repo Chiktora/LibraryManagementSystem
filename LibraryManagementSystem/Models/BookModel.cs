@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace LibraryManagementSystem.Models
 {
@@ -30,5 +31,8 @@ namespace LibraryManagementSystem.Models
 
         // Навигационно свойство за заемания
         public ICollection<BorrowingModel> Borrowings { get; set; } = new List<BorrowingModel>();
+
+        [NotMapped]
+        public int[] AuthorIds { get; set; }
     }
 }

@@ -7,9 +7,11 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using LibraryManagementSystem.Data;
 using LibraryManagementSystem.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace LibraryManagementSystem.Controllers
 {
+    [Authorize(Roles = "Admin")]
     public class AuthorModelsController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -22,7 +24,9 @@ namespace LibraryManagementSystem.Controllers
         // GET: AuthorModels
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Authors.ToListAsync());
+            return View(await _context.Authors
+                .Include(a => a.BookAuthors)
+                .ToListAsync());
         }
 
         // GET: AuthorModels/Details/5
@@ -34,6 +38,8 @@ namespace LibraryManagementSystem.Controllers
             }
 
             var authorModel = await _context.Authors
+                .Include(a => a.BookAuthors)
+                    .ThenInclude(ba => ba.Book)
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (authorModel == null)
             {

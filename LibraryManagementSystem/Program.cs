@@ -11,7 +11,7 @@ namespace LibraryManagementSystem
             var builder = WebApplication.CreateBuilder(args);
 
             // 1) Connection string for ApplicationDbContext
-            var connectionString = Configuration.ConnectionString
+            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
                 ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
             // 2) Register ApplicationDbContext + EF
@@ -53,82 +53,21 @@ namespace LibraryManagementSystem
             app.UseAuthentication();
             app.UseAuthorization();
 
-            // 7) Optional: Seed roles/admin user here
-            using (var scope = app.Services.CreateScope())
-            {
-                var services = scope.ServiceProvider;
-                try
-                {
-                    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-                    var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
-                    SeedRolesAndAdmin(roleManager, userManager);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("Error during seeding: " + ex.Message);
-                }
-            }
-
-            // 8) Map routes
+            // 7) Map routes
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
 
             app.MapRazorPages();
 
+            // Seed Database
+            using (var scope = app.Services.CreateScope())
+            {
+                var services = scope.ServiceProvider;
+                DbSeeder.SeedRolesAndAdminAsync(services).GetAwaiter().GetResult();
+            }
+
             app.Run();
-        }
-
-        private static void SeedRolesAndAdmin(RoleManager<IdentityRole> roleManager, UserManager<IdentityUser> userManager)
-        {
-            // Тъй като Main е void, ще извикаме асинхронните методи със .GetAwaiter().GetResult()
-            var rolesTask = SeedRoles(roleManager);
-            rolesTask.GetAwaiter().GetResult();
-
-            var adminTask = SeedAdminUser(userManager);
-            adminTask.GetAwaiter().GetResult();
-        }
-
-        private static async Task SeedRoles(RoleManager<IdentityRole> roleManager)
-        {
-            string[] roles = { "Admin", "User" };
-
-            foreach (var role in roles)
-            {
-                if (!await roleManager.RoleExistsAsync(role))
-                {
-                    await roleManager.CreateAsync(new IdentityRole(role));
-                }
-            }
-        }
-
-        private static async Task SeedAdminUser(UserManager<IdentityUser> userManager)
-        {
-            string adminEmail = "admin@library.com";
-            string adminPassword = "Admin123!";
-
-            var adminUser = await userManager.FindByEmailAsync(adminEmail);
-            if (adminUser == null)
-            {
-                adminUser = new IdentityUser
-                {
-                    UserName = adminEmail,
-                    Email = adminEmail,
-                    EmailConfirmed = true
-                };
-                var result = await userManager.CreateAsync(adminUser, adminPassword);
-                if (result.Succeeded)
-                {
-                    await userManager.AddToRoleAsync(adminUser, "Admin");
-                }
-                else
-                {
-                    foreach (var error in result.Errors)
-                    {
-                        Console.WriteLine("Error creating admin: " + error.Description);
-                    }
-                }
-            }
         }
     }
 }

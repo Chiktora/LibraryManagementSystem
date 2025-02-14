@@ -1,24 +1,73 @@
 ﻿@model LibraryManagementSystem.Models.GenreModel
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Genre Details";
 }
 
-<h1>Details</h1>
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="page-title">
+                <i class="fas fa-tag me-2"></i>Genre Details
+            </h1>
+        </div>
+    </div>
 
-<div>
-    <h4>GenreModel</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Name)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Name)
-        </dd>
-    </dl>
-</div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h3 class="mb-4">
+                                <span class="badge bg-primary">@Model.Name</span>
+                            </h3>
+                            <h5 class="text-muted mb-4">Books in this Genre</h5>
+                            @if (Model.Books.Any())
+                            {
+                                <div class="list-group">
+                                    @foreach (var book in Model.Books)
+                                    {
+                                        <div class="list-group-item">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h6 class="mb-1">@book.Title</h6>
+                                                <small class="text-muted">@book.PublishedDate?.ToString("d")</small>
+                                            </div>
+                                            <p class="mb-1 text-muted">
+                                                by @string.Join(", ", book.BookAuthors.Select(ba => $"{ba.Author.FirstName} {ba.Author.LastName}"))
+                                            </p>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-muted">No books available in this genre.</p>
+                            }
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h5 class="card-title mb-3">Genre Statistics</h5>
+                                    <p class="mb-2">
+                                        <i class="fas fa-books me-2"></i>Total Books: <span class="text-muted">@Model.Books.Count</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr />
+                    <div class="d-flex gap-2 justify-content-end">
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to List
+                        </a>
+                        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">
+                            <i class="fas fa-edit me-2"></i>Edit
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
