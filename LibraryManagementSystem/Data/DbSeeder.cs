@@ -4,31 +4,49 @@ using LibraryManagementSystem.Models;
 
 namespace LibraryManagementSystem.Data
 {
+    /// <summary>
+    /// Responsible for seeding initial data into the database.
+    /// This includes default users, roles, and sample data for testing.
+    /// </summary>
     public static class DbSeeder
     {
-        public static async Task SeedRolesAndAdminAsync(IServiceProvider service)
+        /// <summary>
+        /// Seeds initial data into the database if it's empty.
+        /// This includes creating admin users, roles, and sample data for books, authors, genres, and publishers.
+        /// </summary>
+        /// <param name="context">The database context to use for seeding.</param>
+        /// <param name="userManager">The user manager for creating users.</param>
+        /// <param name="roleManager">The role manager for creating roles.</param>
+        /// <returns>A task representing the asynchronous seeding operation.</returns>
+        public static async Task SeedData(ApplicationDbContext context, UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager)
         {
-            var userManager = service.GetService<UserManager<IdentityUser>>();
-            var roleManager = service.GetService<RoleManager<IdentityRole>>();
-            var context = service.GetService<ApplicationDbContext>();
-
-            // Seed Roles
-            await roleManager.CreateAsync(new IdentityRole(Roles.Admin.ToString()));
-            await roleManager.CreateAsync(new IdentityRole(Roles.User.ToString()));
-
-            // Create admin user
-            var admin = new IdentityUser
+            // Create roles if they don't exist
+            if (!await roleManager.RoleExistsAsync("Admin"))
             {
-                UserName = "admin@library.com",
-                Email = "admin@library.com",
-                EmailConfirmed = true
-            };
+                await roleManager.CreateAsync(new IdentityRole("Admin"));
+            }
 
-            var userExists = await userManager.FindByEmailAsync(admin.Email);
-            if (userExists == null)
+            if (!await roleManager.RoleExistsAsync("User"))
             {
-                await userManager.CreateAsync(admin, "Admin@123");
-                await userManager.AddToRoleAsync(admin, Roles.Admin.ToString());
+                await roleManager.CreateAsync(new IdentityRole("User"));
+            }
+
+            // Create admin user if it doesn't exist
+            var adminEmail = "admin@library.com";
+            if (await userManager.FindByEmailAsync(adminEmail) == null)
+            {
+                var adminUser = new IdentityUser
+                {
+                    UserName = adminEmail,
+                    Email = adminEmail,
+                    EmailConfirmed = true
+                };
+
+                var result = await userManager.CreateAsync(adminUser, "Admin123!");
+                if (result.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(adminUser, "Admin");
+                }
             }
 
             // Seed initial data only if the database is empty
@@ -69,58 +87,37 @@ namespace LibraryManagementSystem.Data
                 await context.Authors.AddRangeAsync(authors);
                 await context.SaveChangesAsync();
 
-                // Add Books with Authors
+                // Add sample books with relationships
                 var books = new List<BookModel>
                 {
                     new BookModel
                     {
-                        Title = "Harry Potter and the Philosopher's Stone",
-                        ISBN = "978-0747532743",
-                        GenreId = genres.First(g => g.Name == "Fantasy").Id,
-                        PublisherId = publishers.First(p => p.Name == "Penguin Books").Id,
-                        PublishedDate = new DateTime(1997, 6, 26),
-                        Description = "The first book in the Harry Potter series."
+                        Title = "Sample Book 1",
+                        ISBN = "1234567890",
+                        Description = "A sample book for testing",
+                        GenreId = genres[0].Id,
+                        PublisherId = publishers[0].Id,
+                        PublishedDate = DateTime.Now.AddYears(-1)
                     },
                     new BookModel
                     {
-                        Title = "A Game of Thrones",
-                        ISBN = "978-0553103540",
-                        GenreId = genres.First(g => g.Name == "Fantasy").Id,
-                        PublisherId = publishers.First(p => p.Name == "Random House").Id,
-                        PublishedDate = new DateTime(1996, 8, 1),
-                        Description = "The first book in A Song of Ice and Fire series."
-                    },
-                    new BookModel
-                    {
-                        Title = "The Shining",
-                        ISBN = "978-0385121675",
-                        GenreId = genres.First(g => g.Name == "Fiction").Id,
-                        PublisherId = publishers.First(p => p.Name == "Simon & Schuster").Id,
-                        PublishedDate = new DateTime(1977, 1, 28),
-                        Description = "A horror novel by Stephen King."
+                        Title = "Sample Book 2",
+                        ISBN = "0987654321",
+                        Description = "Another sample book for testing",
+                        GenreId = genres[1].Id,
+                        PublisherId = publishers[1].Id,
+                        PublishedDate = DateTime.Now.AddMonths(-6)
                     }
                 };
                 await context.Books.AddRangeAsync(books);
                 await context.SaveChangesAsync();
 
-                // Add Book-Author relationships
+                // Add book-author relationships
                 var bookAuthors = new List<BookAuthorModel>
                 {
-                    new BookAuthorModel
-                    {
-                        BookId = books[0].Id,
-                        AuthorId = authors.First(a => a.LastName == "Rowling").Id
-                    },
-                    new BookAuthorModel
-                    {
-                        BookId = books[1].Id,
-                        AuthorId = authors.First(a => a.LastName == "Martin").Id
-                    },
-                    new BookAuthorModel
-                    {
-                        BookId = books[2].Id,
-                        AuthorId = authors.First(a => a.LastName == "King").Id
-                    }
+                    new BookAuthorModel { BookId = books[0].Id, AuthorId = authors[0].Id },
+                    new BookAuthorModel { BookId = books[0].Id, AuthorId = authors[1].Id },
+                    new BookAuthorModel { BookId = books[1].Id, AuthorId = authors[2].Id }
                 };
                 await context.BookAuthors.AddRangeAsync(bookAuthors);
                 await context.SaveChangesAsync();

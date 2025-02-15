@@ -11,16 +11,28 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace LibraryManagementSystem.Controllers
 {
+    /// <summary>
+    /// Controller responsible for managing book operations.
+    /// Requires Admin role for access to all actions.
+    /// </summary>
     [Authorize(Roles = "Admin")]
     public class BookModelsController : Controller
     {
         private readonly ApplicationDbContext _context;
 
+        /// <summary>
+        /// Initializes a new instance of the BookModelsController.
+        /// </summary>
+        /// <param name="context">The database context to be used.</param>
         public BookModelsController(ApplicationDbContext context)
         {
             _context = context;
         }
 
+        /// <summary>
+        /// Populates ViewData with lists for dropdowns (genres, publishers, authors).
+        /// </summary>
+        /// <param name="bookModel">Optional book model to set selected values in dropdowns.</param>
         private void PopulateViewBags(BookModel bookModel = null)
         {
             ViewData["GenreId"] = new SelectList(_context.Genres, "Id", "Name", bookModel?.GenreId);
@@ -43,18 +55,65 @@ namespace LibraryManagementSystem.Controllers
             }
         }
 
-        // GET: BookModels
-        public async Task<IActionResult> Index()
+        /// <summary>
+        /// Displays a list of all books with optional filtering.
+        /// </summary>
+        /// <param name="searchString">Optional text to filter books by title or ISBN.</param>
+        /// <param name="genreId">Optional genre ID to filter books.</param>
+        /// <param name="publisherId">Optional publisher ID to filter books.</param>
+        /// <param name="authorId">Optional author ID to filter books.</param>
+        /// <returns>A view containing the filtered list of books.</returns>
+        public async Task<IActionResult> Index(string searchString, int? genreId, int? publisherId, int? authorId)
         {
-            var applicationDbContext = _context.Books
+            var query = _context.Books
                 .Include(b => b.Genre)
                 .Include(b => b.Publisher)
                 .Include(b => b.BookAuthors)
-                    .ThenInclude(ba => ba.Author);
-            return View(await applicationDbContext.ToListAsync());
+                    .ThenInclude(ba => ba.Author)
+                .AsQueryable();
+
+            // Apply filters
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                query = query.Where(b => b.Title.Contains(searchString) || b.ISBN.Contains(searchString));
+            }
+
+            if (genreId.HasValue)
+            {
+                query = query.Where(b => b.GenreId == genreId.Value);
+            }
+
+            if (publisherId.HasValue)
+            {
+                query = query.Where(b => b.PublisherId == publisherId.Value);
+            }
+
+            if (authorId.HasValue)
+            {
+                query = query.Where(b => b.BookAuthors.Any(ba => ba.AuthorId == authorId.Value));
+            }
+
+            // Get distinct genres and publishers for filter dropdowns
+            ViewBag.Genres = new SelectList(await _context.Genres.OrderBy(g => g.Name).ToListAsync(), "Id", "Name");
+            ViewBag.Publishers = new SelectList(await _context.Publishers.OrderBy(p => p.Name).ToListAsync(), "Id", "Name");
+            ViewBag.Authors = new SelectList(
+                await _context.Authors
+                    .OrderBy(a => a.LastName)
+                    .ThenBy(a => a.FirstName)
+                    .Select(a => new { Id = a.Id, Name = $"{a.FirstName} {a.LastName}" })
+                    .ToListAsync(),
+                "Id",
+                "Name"
+            );
+
+            return View(await query.ToListAsync());
         }
 
-        // GET: BookModels/Details/5
+        /// <summary>
+        /// Displays detailed information about a specific book.
+        /// </summary>
+        /// <param name="id">The ID of the book to display.</param>
+        /// <returns>A view containing the book details, or NotFound if the book doesn't exist.</returns>
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -76,14 +135,21 @@ namespace LibraryManagementSystem.Controllers
             return View(bookModel);
         }
 
-        // GET: BookModels/Create
+        /// <summary>
+        /// Displays the form for creating a new book.
+        /// </summary>
+        /// <returns>A view containing the book creation form.</returns>
         public IActionResult Create()
         {
             PopulateViewBags();
             return View();
         }
 
-        // POST: BookModels/Create
+        /// <summary>
+        /// Processes the creation of a new book.
+        /// </summary>
+        /// <param name="bookModel">The book model containing the form data.</param>
+        /// <returns>Redirects to Index if successful, or returns to the form if validation fails.</returns>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,Title,ISBN,GenreId,PublisherId,PublishedDate,Description,AuthorIds")] BookModel bookModel)
@@ -114,7 +180,11 @@ namespace LibraryManagementSystem.Controllers
             return View(bookModel);
         }
 
-        // GET: BookModels/Edit/5
+        /// <summary>
+        /// Displays the form for editing an existing book.
+        /// </summary>
+        /// <param name="id">The ID of the book to edit.</param>
+        /// <returns>A view containing the book edit form, or NotFound if the book doesn't exist.</returns>
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -135,7 +205,12 @@ namespace LibraryManagementSystem.Controllers
             return View(bookModel);
         }
 
-        // POST: BookModels/Edit/5
+        /// <summary>
+        /// Processes the update of an existing book.
+        /// </summary>
+        /// <param name="id">The ID of the book to update.</param>
+        /// <param name="bookModel">The book model containing the updated data.</param>
+        /// <returns>Redirects to Index if successful, or returns to the form if validation fails.</returns>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Title,ISBN,GenreId,PublisherId,PublishedDate,Description,AuthorIds")] BookModel bookModel)
@@ -190,7 +265,11 @@ namespace LibraryManagementSystem.Controllers
             return View(bookModel);
         }
 
-        // GET: BookModels/Delete/5
+        /// <summary>
+        /// Displays the confirmation page for deleting a book.
+        /// </summary>
+        /// <param name="id">The ID of the book to delete.</param>
+        /// <returns>A view asking for deletion confirmation, or NotFound if the book doesn't exist.</returns>
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -212,7 +291,11 @@ namespace LibraryManagementSystem.Controllers
             return View(bookModel);
         }
 
-        // POST: BookModels/Delete/5
+        /// <summary>
+        /// Processes the deletion of a book.
+        /// </summary>
+        /// <param name="id">The ID of the book to delete.</param>
+        /// <returns>Redirects to Index after successful deletion.</returns>
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
