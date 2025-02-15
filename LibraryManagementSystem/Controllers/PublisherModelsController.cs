@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -22,11 +22,19 @@ namespace LibraryManagementSystem.Controllers
         }
 
         // GET: PublisherModels
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string searchString)
         {
-            return View(await _context.Publishers
+            var query = _context.Publishers
                 .Include(p => p.Books)
-                .ToListAsync());
+                .AsQueryable();
+
+            // Apply name filter
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                query = query.Where(p => p.Name.Contains(searchString));
+            }
+
+            return View(await query.ToListAsync());
         }
 
         // GET: PublisherModels/Details/5
