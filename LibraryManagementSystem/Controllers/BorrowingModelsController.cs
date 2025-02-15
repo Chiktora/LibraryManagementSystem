@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -25,7 +25,7 @@ namespace LibraryManagementSystem.Controllers
         }
 
         // GET: BorrowingModels
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string searchString, string status, DateTime? fromDate, DateTime? toDate)
         {
             var user = await _userManager.GetUserAsync(User);
             var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
@@ -39,6 +39,31 @@ namespace LibraryManagementSystem.Controllers
                 // Regular users can only see their own borrowings
                 borrowings = borrowings.Where(b => b.UserId == user.Id);
             }
+
+            // Apply filters
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                borrowings = borrowings.Where(b => b.Book.Title.Contains(searchString));
+            }
+
+            if (!string.IsNullOrEmpty(status))
+            {
+                borrowings = borrowings.Where(b => b.Status == status);
+            }
+
+            if (fromDate.HasValue)
+            {
+                borrowings = borrowings.Where(b => b.BorrowDate.Date >= fromDate.Value.Date);
+            }
+
+            if (toDate.HasValue)
+            {
+                borrowings = borrowings.Where(b => b.BorrowDate.Date <= toDate.Value.Date);
+            }
+
+            // Get distinct statuses for the filter dropdown
+            var statuses = await _context.Borrowings.Select(b => b.Status).Distinct().ToListAsync();
+            ViewBag.Statuses = new SelectList(statuses);
 
             return View(await borrowings.ToListAsync());
         }
