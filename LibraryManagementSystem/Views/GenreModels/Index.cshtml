@@ -1,4 +1,4 @@
-﻿@model IEnumerable<LibraryManagementSystem.Models.GenreModel>
+@model IEnumerable<LibraryManagementSystem.Models.GenreModel>
 
 @{
     ViewData["Title"] = "Genres";
@@ -8,13 +8,48 @@
     <div class="row mb-4">
         <div class="col">
             <h1 class="page-title">
-                <i class="fas fa-tags me-2"></i>Genre Management
+                <i class="fas fa-tags me-2"></i>Genres
             </h1>
         </div>
         <div class="col text-end">
+            <button class="btn btn-outline-primary me-2" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+                <i class="fas fa-filter me-2"></i>Filters
+                <span class="badge bg-primary filter-count">0</span>
+            </button>
             <a asp-action="Create" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>Add New Genre
+                <i class="fas fa-plus me-2"></i>New Genre
             </a>
+        </div>
+    </div>
+
+    <div class="collapse mb-4" id="filterCollapse">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-search me-2"></i>Search Genres
+                </h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Index" method="get" id="filterForm">
+                    <div class="row g-3">
+                        <div class="col-lg-12">
+                            <div class="form-group">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-tag"></i></span>
+                                    <input type="text" name="searchString" class="form-control" placeholder="Search by genre name..." 
+                                           value="@Context.Request.Query["searchString"]" />
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-search me-2"></i>Search
+                                    </button>
+                                    <a asp-action="Index" class="btn btn-secondary">
+                                        <i class="fas fa-times me-2"></i>Clear
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -41,15 +76,21 @@
                                 </td>
                                 <td>
                                     <div class="btn-group d-flex justify-content-center">
-                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
+                                        @if (User.IsInRole("Admin"))
+                                        {
+                                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        }
                                         <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-info" title="Details">
                                             <i class="fas fa-info-circle"></i>
                                         </a>
-                                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger" title="Delete">
-                                            <i class="fas fa-trash"></i>
-                                        </a>
+                                        @if (User.IsInRole("Admin"))
+                                        {
+                                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger" title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        }
                                     </div>
                                 </td>
                             </tr>
@@ -66,6 +107,32 @@
         $(document).ready(function() {
             // Add tooltips to action buttons
             $('[title]').tooltip();
+
+            // Update filter count badge
+            function updateFilterCount() {
+                var count = 0;
+                if ($('input[name="searchString"]').val()) count++;
+                $('.filter-count').text(count);
+                
+                if (count > 0) {
+                    $('.filter-count').show();
+                } else {
+                    $('.filter-count').hide();
+                }
+            }
+
+            // Monitor filter changes
+            $('#filterForm input').on('change keyup', function() {
+                updateFilterCount();
+            });
+
+            // Initial filter count
+            updateFilterCount();
+
+            // Show filter collapse if there are active filters
+            if ($('.filter-count').text() !== '0') {
+                $('#filterCollapse').addClass('show');
+            }
         });
     </script>
 }
