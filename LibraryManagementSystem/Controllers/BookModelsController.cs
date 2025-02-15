@@ -44,14 +44,50 @@ namespace LibraryManagementSystem.Controllers
         }
 
         // GET: BookModels
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string searchString, int? genreId, int? publisherId, int? authorId)
         {
-            var applicationDbContext = _context.Books
+            var query = _context.Books
                 .Include(b => b.Genre)
                 .Include(b => b.Publisher)
                 .Include(b => b.BookAuthors)
-                    .ThenInclude(ba => ba.Author);
-            return View(await applicationDbContext.ToListAsync());
+                    .ThenInclude(ba => ba.Author)
+                .AsQueryable();
+
+            // Apply filters
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                query = query.Where(b => b.Title.Contains(searchString) || b.ISBN.Contains(searchString));
+            }
+
+            if (genreId.HasValue)
+            {
+                query = query.Where(b => b.GenreId == genreId.Value);
+            }
+
+            if (publisherId.HasValue)
+            {
+                query = query.Where(b => b.PublisherId == publisherId.Value);
+            }
+
+            if (authorId.HasValue)
+            {
+                query = query.Where(b => b.BookAuthors.Any(ba => ba.AuthorId == authorId.Value));
+            }
+
+            // Get distinct genres and publishers for filter dropdowns
+            ViewBag.Genres = new SelectList(await _context.Genres.OrderBy(g => g.Name).ToListAsync(), "Id", "Name");
+            ViewBag.Publishers = new SelectList(await _context.Publishers.OrderBy(p => p.Name).ToListAsync(), "Id", "Name");
+            ViewBag.Authors = new SelectList(
+                await _context.Authors
+                    .OrderBy(a => a.LastName)
+                    .ThenBy(a => a.FirstName)
+                    .Select(a => new { Id = a.Id, Name = $"{a.FirstName} {a.LastName}" })
+                    .ToListAsync(),
+                "Id",
+                "Name"
+            );
+
+            return View(await query.ToListAsync());
         }
 
         // GET: BookModels/Details/5
