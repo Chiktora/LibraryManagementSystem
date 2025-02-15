@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -22,11 +22,21 @@ namespace LibraryManagementSystem.Controllers
         }
 
         // GET: AuthorModels
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string searchString)
         {
-            return View(await _context.Authors
+            var query = _context.Authors
                 .Include(a => a.BookAuthors)
-                .ToListAsync());
+                .AsQueryable();
+
+            // Apply name filter
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                query = query.Where(a => 
+                    a.FirstName.Contains(searchString) || 
+                    a.LastName.Contains(searchString));
+            }
+
+            return View(await query.ToListAsync());
         }
 
         // GET: AuthorModels/Details/5
