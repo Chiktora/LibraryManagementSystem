@@ -294,8 +294,3 @@ DELETE /api/publishers/{id}     - Delete publisher
 4. Report generation
 5. Integration with external book APIs
 
-## Support and Contact
-For technical support or questions:
-- Email: [support email]
-- Documentation: [wiki link]
-- Issue tracking: [issue tracker link] 
