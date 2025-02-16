@@ -84,3 +84,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 🔥 Developed with ❤️ using ASP.NET Core & EF Core.
+
+## 🧑‍💻 Creators
+- Victor **Tsekov**
+- Georgi **Panayotov**
+- Dobromir **Hristov**
